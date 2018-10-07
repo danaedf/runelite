@@ -25,9 +25,11 @@
 package net.runelite.client.plugins.agility;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import java.util.List;
-import java.util.Set;
+
+import java.util.*;
+
 import static net.runelite.api.NullObjectID.*;
 import static net.runelite.api.ObjectID.*;
 
@@ -88,6 +90,13 @@ class Obstacles
 		// Werewolf
 		STEPPING_STONE_11643, HURDLE, HURDLE_11639, HURDLE_11640, PIPE_11657, SKULL_SLOPE, ZIP_LINE_11644,
 		ZIP_LINE_11645, ZIP_LINE_11646
+	);
+
+	static final ImmutableMap.Builder<Integer, List<Integer>> COURSE_OBSTACLE_IDS_GROUPED = ImmutableMap
+			.<Integer, List<Integer>> builder()
+			// Canifis
+			.put(TALL_TREE_10819, Arrays.asList(GAP_10820, GAP_10821, GAP_10828, GAP_10822, POLEVAULT, GAP_10823, GAP_10832)
+
 	);
 
 	static final Set<Integer> SHORTCUT_OBSTACLE_IDS = ImmutableSet.of(

@@ -95,17 +95,17 @@ class AgilityOverlay extends Overlay
 						configColor = config.getMarkColor();
 					}
 
-					if (objectClickbox.contains(mousePosition.getX(), mousePosition.getY()))
+/*					if (objectClickbox.contains(mousePosition.getX(), mousePosition.getY()))
 					{
 						graphics.setColor(configColor.darker());
-					}
+					}*/
 					else
 					{
 						graphics.setColor(configColor);
 					}
 
 					graphics.draw(objectClickbox);
-					graphics.setColor(new Color(configColor.getRed(), configColor.getGreen(), configColor.getBlue(), 50));
+					graphics.setColor(new Color(configColor.getRed(), configColor.getGreen(), configColor.getBlue(), 255));
 					graphics.fill(objectClickbox);
 				}
 			}
