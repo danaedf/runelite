@@ -27,6 +27,9 @@ package net.runelite.client.plugins.runenergy;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.Point;
@@ -104,4 +107,5 @@ class RunEnergyOverlay extends Overlay
 
 		return null;
 	}
+
 }

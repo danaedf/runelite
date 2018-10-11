@@ -47,6 +47,10 @@ import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+
 @PluginDescriptor(
 	name = "Run Energy",
 	description = "Show various information related to run energy",
@@ -143,6 +147,7 @@ public class RunEnergyPlugin extends Plugin
 		{
 			setRunOrbText(getEstimatedRunTimeRemaining(true));
 		}
+		writeEnergy("C:\\Users\\dan\\Documents\\ahk\\temp\\runEnergy.txt");
 	}
 
 	@Subscribe
@@ -242,5 +247,18 @@ public class RunEnergyPlugin extends Plugin
 		// Calculate the number of seconds left
 		final double secondsLeft = (100 - client.getEnergy()) / recoverRate;
 		return (int) secondsLeft;
+	}
+
+	private void writeEnergy(String fileName)
+	{
+		FileWriter fileWriter = null;
+		try {
+			fileWriter = new FileWriter(fileName);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		PrintWriter printWriter = new PrintWriter(fileWriter);
+		printWriter.print(client.getEnergy());
+		printWriter.close();
 	}
 }

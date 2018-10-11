@@ -28,6 +28,11 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Polygon;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
@@ -78,6 +83,7 @@ public class TileIndicatorsOverlay extends Overlay
 			renderTile(graphics, client.getLocalDestinationLocation(), config.highlightDestinationColor());
 		}
 
+		writeDestination("C:\\Users\\dan\\Documents\\ahk\\temp\\PlayerDestination.txt");
 		return null;
 	}
 
@@ -97,4 +103,25 @@ public class TileIndicatorsOverlay extends Overlay
 
 		OverlayUtil.renderPolygon(graphics, poly, color);
 	}
+	private void writeDestination(String fileName)
+	{
+		LocalPoint p1 = client.getLocalDestinationLocation();
+        LocalPoint p2 = client.getLocalPlayer().getLocalLocation();
+        FileWriter fileWriter = null;
+        try {
+            fileWriter = new FileWriter(fileName);
+            PrintWriter printWriter = new PrintWriter(fileWriter);
+            if (p1 != null && p2 != null)
+            {
+                printWriter.printf("%d, %d", p2.getX() - p1.getX(), p2.getY() - p1.getY());
+            }
+            else
+            {
+                printWriter.print("Not moving");
+            }
+            printWriter.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
