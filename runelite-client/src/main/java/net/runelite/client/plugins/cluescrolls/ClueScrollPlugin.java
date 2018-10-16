@@ -308,7 +308,10 @@ public class ClueScrollPlugin extends Plugin
 				{
 					for (WorldPoint location : locations)
 					{
-						highlightObjectsForLocation(location, objectIds);
+						if (location != null)
+						{
+							highlightObjectsForLocation(location, objectIds);
+						}
 					}
 				}
 			}
@@ -414,11 +417,7 @@ public class ClueScrollPlugin extends Plugin
 		}
 
 		// Remove line breaks and also the rare occasion where there are double line breaks
-		final String text = Text.removeTags(clueScrollText.getText()
-			.replaceAll("-<br>", "-")
-			.replaceAll("<br>", " ")
-			.replaceAll("[ ]+", " ")
-			.toLowerCase());
+		final String text = Text.sanitizeMultilineText(clueScrollText.getText()).toLowerCase();
 
 		// Early return if this is same clue as already existing one
 		if (clue instanceof TextClueScroll)
@@ -481,6 +480,7 @@ public class ClueScrollPlugin extends Plugin
 		}
 
 		// We have unknown clue, reset
+		log.warn("Encountered unhandled clue text: {}", clueScrollText.getText());
 		resetClue(true);
 		return null;
 	}

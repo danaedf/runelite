@@ -32,6 +32,9 @@ import java.awt.event.MouseWheelEvent;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.Getter;
@@ -64,6 +67,7 @@ import net.runelite.client.plugins.banktags.BankTagsConfig;
 import net.runelite.client.plugins.banktags.BankTagsPlugin;
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.CONFIG_GROUP;
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.ICON_SEARCH;
+import static net.runelite.client.plugins.banktags.BankTagsPlugin.SPLITTER;
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.TAG_SEARCH;
 import net.runelite.client.plugins.banktags.TagManager;
 import net.runelite.client.util.ColorUtil;
@@ -80,6 +84,8 @@ public class TabInterface
 	private static final String VIEW_TAB = "View tag tab";
 	private static final String CHANGE_ICON = "Change icon";
 	private static final String REMOVE_TAG = "Remove-tag";
+	private static final String TAG_GEAR = "Tag-equipment";
+	private static final String TAG_INVENTORY = "Tag-inventory";
 	private static final int TAB_HEIGHT = 40;
 	private static final int TAB_WIDTH = 39;
 	private static final int BUTTON_HEIGHT = 20;
@@ -190,6 +196,11 @@ public class TabInterface
 		tabManager.getAllTabs().forEach(this::loadTab);
 		activateTab(null);
 		scrollTab(0);
+
+		if (config.rememberTab() && !Strings.isNullOrEmpty(config.tab()))
+		{
+			openTag(TAG_SEARCH + config.tab());
+		}
 	}
 
 	public void destroy()
@@ -219,6 +230,23 @@ public class TabInterface
 			if (currentTabIndex != config.position())
 			{
 				config.position(currentTabIndex);
+			}
+
+			// Do the same for last active tab
+			if (config.rememberTab())
+			{
+				if (activeTab == null && !Strings.isNullOrEmpty(config.tab()))
+				{
+					config.tab("");
+				}
+				else if (activeTab != null && !activeTab.getTag().equals(config.tab()))
+				{
+					config.tab(activeTab.getTag());
+				}
+			}
+			else if (!Strings.isNullOrEmpty(config.tab()))
+			{
+				config.tab("");
 			}
 
 			return;
@@ -292,21 +320,37 @@ public class TabInterface
 			&& event.getActionParam1() == WidgetInfo.BANK_ITEM_CONTAINER.getId()
 			&& event.getOption().equals("Examine"))
 		{
-			MenuEntry removeTag = new MenuEntry();
-			removeTag.setParam0(event.getActionParam0());
-			removeTag.setParam1(event.getActionParam1());
-			removeTag.setTarget(event.getTarget());
-			removeTag.setOption(REMOVE_TAG + " (" + activeTab.getTag() + ")");
-			removeTag.setType(MenuAction.RUNELITE.getId());
-			removeTag.setIdentifier(event.getIdentifier());
-			entries = Arrays.copyOf(entries, entries.length + 1);
-			entries[entries.length - 1] = removeTag;
+			entries = createMenuEntry(event, REMOVE_TAG + " (" + activeTab.getTag() + ")", event.getTarget(), entries);
 			client.setMenuEntries(entries);
 		}
 		else if (iconToSet != null && (entry.getOption().startsWith("Withdraw-") || entry.getOption().equals("Release")))
 		{
 			// TODO: Do not replace every withdraw option with change icon option
 			entry.setOption(CHANGE_ICON + " (" + iconToSet.getTag() + ")");
+			client.setMenuEntries(entries);
+		}
+		else if (event.getActionParam1() == WidgetInfo.BANK_DEPOSIT_INVENTORY.getId()
+			&& event.getOption().equals("Deposit inventory"))
+		{
+			entries = createMenuEntry(event, TAG_INVENTORY, event.getTarget(), entries);
+
+			if (activeTab != null)
+			{
+				entries = createMenuEntry(event, TAG_INVENTORY, ColorUtil.wrapWithColorTag(activeTab.getTag(), HILIGHT_COLOR), entries);
+			}
+
+			client.setMenuEntries(entries);
+		}
+		else if (event.getActionParam1() == WidgetInfo.BANK_DEPOSIT_EQUIPMENT.getId()
+			&& event.getOption().equals("Deposit worn items"))
+		{
+			entries = createMenuEntry(event, TAG_GEAR, event.getTarget(), entries);
+
+			if (activeTab != null)
+			{
+				entries = createMenuEntry(event, TAG_GEAR, ColorUtil.wrapWithColorTag(activeTab.getTag(), HILIGHT_COLOR), entries);
+			}
+
 			client.setMenuEntries(entries);
 		}
 	}
@@ -360,6 +404,50 @@ public class TabInterface
 			final int itemId = itemManager.canonicalize(item.getId());
 			tagManager.removeTag(itemId, activeTab.getTag());
 			doSearch(InputType.SEARCH, TAG_SEARCH + activeTab.getTag());
+		}
+		else if (event.getMenuAction() == MenuAction.RUNELITE
+			&& (event.getMenuOption().equals(TAG_INVENTORY) || event.getMenuOption().equals(TAG_GEAR)))
+		{
+			event.consume();
+			boolean inventory = event.getMenuOption().equals(TAG_INVENTORY);
+			ItemContainer container = client.getItemContainer(inventory ? InventoryID.INVENTORY : InventoryID.EQUIPMENT);
+
+			if (container == null)
+			{
+				return;
+			}
+
+			List<Integer> items = Arrays.stream(container.getItems())
+				.filter(Objects::nonNull)
+				.map(i -> itemManager.canonicalize(i.getId()))
+				.collect(Collectors.toList());
+
+			if (activeTab != null && event.getMenuTarget() != null && Text.removeTags(event.getMenuTarget()).equals(activeTab.getTag()))
+			{
+				for (Integer item : items)
+				{
+					tagManager.addTag(item, activeTab.getTag());
+				}
+
+				openTag(TAG_SEARCH + activeTab.getTag());
+			}
+			else
+			{
+				chatboxInputManager.openInputWindow((inventory ? "Inventory " : "Equipment ") + "tags:", "", (newTags) ->
+				{
+					if (!Objects.equals(newTags, client.getVar(VarClientStr.INPUT_TEXT)) || Strings.isNullOrEmpty(newTags))
+					{
+						return;
+					}
+
+					final List<String> tags = SPLITTER.splitToList(newTags);
+
+					for (Integer item : items)
+					{
+						tagManager.addTags(item, tags);
+					}
+				});
+			}
 		}
 		else
 		{
@@ -790,11 +878,25 @@ public class TabInterface
 	private void openTag(String tag)
 	{
 		doSearch(InputType.SEARCH, tag);
-		activateTab(tabManager.find(tag.substring(4)));
+		activateTab(tabManager.find(tag.substring(TAG_SEARCH.length())));
 
 		// When tab is selected with search window open, the search window closes but the search button
 		// stays highlighted, this solves that issue
 		Widget searchBackground = client.getWidget(WidgetInfo.BANK_SEARCH_BUTTON_BACKGROUND);
 		searchBackground.setSpriteId(SpriteID.EQUIPMENT_SLOT_TILE);
+	}
+
+	private static MenuEntry[] createMenuEntry(MenuEntryAdded event, String option, String target, MenuEntry[] entries)
+	{
+		final MenuEntry entry = new MenuEntry();
+		entry.setParam0(event.getActionParam0());
+		entry.setParam1(event.getActionParam1());
+		entry.setTarget(target);
+		entry.setOption(option);
+		entry.setType(MenuAction.RUNELITE.getId());
+		entry.setIdentifier(event.getIdentifier());
+		entries = Arrays.copyOf(entries, entries.length + 1);
+		entries[entries.length - 1] = entry;
+		return entries;
 	}
 }

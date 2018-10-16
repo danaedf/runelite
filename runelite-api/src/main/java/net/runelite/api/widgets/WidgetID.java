@@ -192,6 +192,7 @@ public class WidgetID
 		static final int TITLE = 1;
 		static final int NAME = 3;
 		static final int OWNER = 5;
+		static final int LIST = 15;
 	}
 
 	static class Bank
@@ -202,6 +203,8 @@ public class WidgetID
 		static final int CONTENT_CONTAINER = 9;
 		static final int ITEM_CONTAINER = 12;
 		static final int SEARCH_BUTTON_BACKGROUND = 39;
+		static final int DEPOSIT_INVENTORY = 41;
+		static final int DEPOSIT_EQUIPMENT = 43;
 		static final int INCINERATOR = 45;
 		static final int INCINERATOR_CONFIRM = 46;
 	}
@@ -695,6 +698,8 @@ public class WidgetID
 
 	static class Pvp
 	{
+		static final int KILLDEATH_RATIO = 6;
+		static final int BOUNTY_HUNTER_STATS = 25;
 		static final int PVP_WIDGET_CONTAINER = 50;
 		static final int SKULL_CONTAINER = 51;
 		static final int SKULL = 52;
