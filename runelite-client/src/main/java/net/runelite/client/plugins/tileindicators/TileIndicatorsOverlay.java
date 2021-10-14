@@ -24,6 +24,7 @@
  */
 package net.runelite.client.plugins.tileindicators;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -37,6 +38,7 @@ import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.Perspective;
 import net.runelite.api.coords.LocalPoint;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -45,7 +47,6 @@ import net.runelite.client.ui.overlay.OverlayUtil;
 
 public class TileIndicatorsOverlay extends Overlay
 {
-	private static final Color EMPTY = new Color(0, 0, 0, 0);
 	private final Client client;
 	private final TileIndicatorsConfig config;
 
@@ -56,7 +57,7 @@ public class TileIndicatorsOverlay extends Overlay
 		this.config = config;
 		setPosition(OverlayPosition.DYNAMIC);
 		setLayer(OverlayLayer.ABOVE_SCENE);
-		setPriority(OverlayPriority.LOW);
+		setPriority(OverlayPriority.MED);
 	}
 
 	@Override
@@ -64,30 +65,40 @@ public class TileIndicatorsOverlay extends Overlay
 	{
 		if (config.highlightHoveredTile())
 		{
-			// Update selected scene tile
-			if (!client.isMenuOpen())
-			{
-				client.setCheckClick(true);
-				client.setMouseCanvasHoverPosition(client.getMouseCanvasPosition());
-			}
-
 			// If we have tile "selected" render it
 			if (client.getSelectedSceneTile() != null)
 			{
-				renderTile(graphics, client.getSelectedSceneTile().getLocalLocation(), EMPTY);
+				renderTile(graphics, client.getSelectedSceneTile().getLocalLocation(), config.highlightHoveredColor(), config.hoveredTileBorderWidth());
 			}
 		}
 
 		if (config.highlightDestinationTile())
 		{
-			renderTile(graphics, client.getLocalDestinationLocation(), config.highlightDestinationColor());
+			renderTile(graphics, client.getLocalDestinationLocation(), config.highlightDestinationColor(), config.destinationTileBorderWidth());
+		}
+
+		if (config.highlightCurrentTile())
+		{
+			final WorldPoint playerPos = client.getLocalPlayer().getWorldLocation();
+			if (playerPos == null)
+			{
+				return null;
+			}
+
+			final LocalPoint playerPosLocal = LocalPoint.fromWorld(client, playerPos);
+			if (playerPosLocal == null)
+			{
+				return null;
+			}
+
+			renderTile(graphics, playerPosLocal, config.highlightCurrentColor(), config.currentTileBorderWidth());
 		}
 
 		writeDestination("C:\\Users\\dan\\Documents\\ahk\\temp\\PlayerDestination.txt");
 		return null;
 	}
 
-	private void renderTile(final Graphics2D graphics, final LocalPoint dest, final Color color)
+	private void renderTile(final Graphics2D graphics, final LocalPoint dest, final Color color, final double borderWidth)
 	{
 		if (dest == null)
 		{
@@ -101,7 +112,7 @@ public class TileIndicatorsOverlay extends Overlay
 			return;
 		}
 
-		OverlayUtil.renderPolygon(graphics, poly, color);
+		OverlayUtil.renderPolygon(graphics, poly, color, new BasicStroke((float) borderWidth));
 	}
 	private void writeDestination(String fileName)
 	{

@@ -81,17 +81,18 @@ public class BoostIndicator extends InfoBox
 			return new Color(238, 51, 51);
 		}
 
-		return boosted - base < config.boostThreshold() ? Color.YELLOW : Color.GREEN;
+		return boosted - base <= config.boostThreshold() ? Color.YELLOW : Color.GREEN;
 	}
 
 	@Override
 	public boolean render()
 	{
-		if (config.displayIndicators() && plugin.canShowBoosts() && plugin.getShownSkills().contains(getSkill()))
-		{
-			return client.getBoostedSkillLevel(skill) != client.getRealSkillLevel(skill);
-		}
+		return config.displayInfoboxes() && plugin.canShowBoosts() && plugin.getSkillsToDisplay().contains(getSkill());
+	}
 
-		return false;
+	@Override
+	public String getName()
+	{
+		return "Boost " + skill.getName();
 	}
 }

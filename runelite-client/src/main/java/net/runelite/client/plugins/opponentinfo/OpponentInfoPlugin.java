@@ -25,28 +25,27 @@
  */
 package net.runelite.client.plugins.opponentinfo;
 
-import com.google.common.eventbus.Subscribe;
-import com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.inject.Provides;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.EnumSet;
-import java.util.Map;
 import javax.inject.Inject;
 import lombok.AccessLevel;
 import lombok.Getter;
 import net.runelite.api.Actor;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.MenuAction;
+import net.runelite.api.MenuEntry;
+import net.runelite.api.NPC;
 import net.runelite.api.WorldType;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.InteractingChanged;
+import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
@@ -82,10 +81,9 @@ public class OpponentInfoPlugin extends Plugin
 	@Getter(AccessLevel.PACKAGE)
 	private Actor lastOpponent;
 
-	private Instant lastTime;
-
 	@Getter(AccessLevel.PACKAGE)
-	private final Map<String, Integer> oppInfoHealth = loadNpcHealth();
+	@VisibleForTesting
+	private Instant lastTime;
 
 	@Provides
 	OpponentInfoConfig provideConfig(ConfigManager configManager)
@@ -117,10 +115,10 @@ public class OpponentInfoPlugin extends Plugin
 			return;
 		}
 
-		EnumSet<WorldType> worldType = client.getWorldType();
-		if (worldType.contains(WorldType.SEASONAL_DEADMAN))
+		final EnumSet<WorldType> worldType = client.getWorldType();
+		if (worldType.contains(WorldType.SEASONAL))
 		{
-			hiscoreEndpoint = HiscoreEndpoint.SEASONAL_DEADMAN;
+			hiscoreEndpoint = HiscoreEndpoint.TOURNAMENT;
 		}
 		else if (worldType.contains(WorldType.DEADMAN))
 		{
@@ -165,14 +163,28 @@ public class OpponentInfoPlugin extends Plugin
 		}
 	}
 
-	private Map<String, Integer> loadNpcHealth()
+	@Subscribe
+	public void onMenuEntryAdded(MenuEntryAdded menuEntryAdded)
 	{
-		Gson gson = new Gson();
-		Type type = new TypeToken<Map<String, Integer>>()
+		if (menuEntryAdded.getType() != MenuAction.NPC_SECOND_OPTION.getId()
+			|| !menuEntryAdded.getOption().equals("Attack")
+			|| !config.showOpponentsInMenu())
 		{
-		}.getType();
+			return;
+		}
 
-		InputStream healthFile = OpponentInfoPlugin.class.getResourceAsStream("/npc_health.json");
-		return gson.fromJson(new InputStreamReader(healthFile), type);
+		int npcIndex = menuEntryAdded.getIdentifier();
+		NPC npc = client.getCachedNPCs()[npcIndex];
+		if (npc == null)
+		{
+			return;
+		}
+
+		if (npc.getInteracting() == client.getLocalPlayer() || lastOpponent == npc)
+		{
+			MenuEntry[] menuEntries = client.getMenuEntries();
+			menuEntries[menuEntries.length - 1].setTarget("*" + menuEntries[menuEntries.length - 1].getTarget());
+			client.setMenuEntries(menuEntries);
+		}
 	}
 }

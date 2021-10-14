@@ -33,6 +33,20 @@ import net.runelite.api.kit.KitType;
 public interface PlayerComposition
 {
 	/**
+	 * Checks if the player is female.
+	 *
+	 * @return true if the player is female
+	 */
+	boolean isFemale();
+
+	/**
+	 * Get the body part colors for this player composition.
+	 *
+	 * @return an array of the colors, always size 5
+	 */
+	int[] getColors();
+
+	/**
 	 * Gets an array of IDs related to equipment slots.
 	 * <p>
 	 * If the ID for a specific slot is between 256 and 512, subtracting
@@ -58,6 +72,13 @@ public interface PlayerComposition
 	 * @return the kit ID
 	 */
 	int getKitId(KitType type);
+
+	/**
+	 * Update the cached hash value for player equipment
+	 * Used to cache the player models based on equipment.
+	 */
+	@VisibleForDevtools
+	void setHash();
 
 	@VisibleForDevtools
 	void setTransformedNpcId(int id);

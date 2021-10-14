@@ -27,29 +27,40 @@ package net.runelite.client.plugins.banktags;
 
 import com.google.common.base.Strings;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.ItemVariationMapping;
 import static net.runelite.client.plugins.banktags.BankTagsPlugin.CONFIG_GROUP;
-import static net.runelite.client.plugins.banktags.BankTagsPlugin.JOINER;
-import static net.runelite.client.plugins.banktags.BankTagsPlugin.SPLITTER;
 import net.runelite.client.util.Text;
 
 @Singleton
 public class TagManager
 {
-	private static final String ITEM_KEY_PREFIX = "item_";
+	static final String ITEM_KEY_PREFIX = "item_";
 	private final ConfigManager configManager;
+	private final ItemManager itemManager;
+	private final Map<String, BankTag> customTags = new HashMap<>();
 
 	@Inject
-	private TagManager(final ConfigManager configManager)
+	private TagManager(
+		final ItemManager itemManager,
+		final ConfigManager configManager)
 	{
+		this.itemManager = itemManager;
 		this.configManager = configManager;
 	}
 
-	public String getTagString(int itemId)
+	String getTagString(int itemId, boolean variation)
 	{
+		itemId = getItemId(itemId, variation);
+
 		String config = configManager.getConfiguration(CONFIG_GROUP, ITEM_KEY_PREFIX + itemId);
 		if (config == null)
 		{
@@ -59,13 +70,15 @@ public class TagManager
 		return config;
 	}
 
-	Collection<String> getTags(int itemId)
+	Collection<String> getTags(int itemId, boolean variation)
 	{
-		return new LinkedHashSet<>(SPLITTER.splitToList(getTagString(itemId).toLowerCase()));
+		return new LinkedHashSet<>(Text.fromCSV(getTagString(itemId, variation).toLowerCase()));
 	}
 
-	public void setTagString(int itemId, String tags)
+	void setTagString(int itemId, String tags, boolean variation)
 	{
+		itemId = getItemId(itemId, variation);
+
 		if (Strings.isNullOrEmpty(tags))
 		{
 			configManager.unsetConfiguration(CONFIG_GROUP, ITEM_KEY_PREFIX + itemId);
@@ -76,46 +89,110 @@ public class TagManager
 		}
 	}
 
-	public void addTags(int itemId, final Collection<String> t)
+	public void addTags(int itemId, final Collection<String> t, boolean variation)
 	{
-		final Collection<String> tags = getTags(itemId);
+		final Collection<String> tags = getTags(itemId, variation);
 		if (tags.addAll(t))
 		{
-			setTags(itemId, tags);
+			setTags(itemId, tags, variation);
 		}
 	}
 
-	public void addTag(int itemId, String tag)
+	public void addTag(int itemId, String tag, boolean variation)
 	{
-		final Collection<String> tags = getTags(itemId);
+		final Collection<String> tags = getTags(itemId, variation);
 		if (tags.add(Text.standardize(tag)))
 		{
-			setTags(itemId, tags);
+			setTags(itemId, tags, variation);
 		}
 	}
 
-	private void setTags(int itemId, Collection<String> tags)
+	private void setTags(int itemId, Collection<String> tags, boolean variation)
 	{
-		setTagString(itemId, JOINER.join(tags));
+		setTagString(itemId, Text.toCSV(tags), variation);
 	}
 
 	boolean findTag(int itemId, String search)
 	{
-		return getTags(itemId).stream().anyMatch(tag -> tag.contains(Text.standardize(search)));
+		BankTag bankTag = customTags.get(search);
+		if (bankTag != null && bankTag.contains(itemId))
+		{
+			return true;
+		}
+
+		Collection<String> tags = getTags(itemId, false);
+		tags.addAll(getTags(itemId, true));
+		return tags.stream().anyMatch(tag -> tag.startsWith(Text.standardize(search)));
+	}
+
+	public List<Integer> getItemsForTag(String tag)
+	{
+		final String prefix = CONFIG_GROUP + "." + ITEM_KEY_PREFIX;
+		return configManager.getConfigurationKeys(prefix).stream()
+			.map(item -> Integer.parseInt(item.replace(prefix, "")))
+			.filter(item -> getTags(item, false).contains(tag) || getTags(item, true).contains(tag))
+			.collect(Collectors.toList());
 	}
 
 	public void removeTag(String tag)
 	{
 		final String prefix = CONFIG_GROUP + "." + ITEM_KEY_PREFIX;
-		configManager.getConfigurationKeys(prefix).forEach(item -> removeTag(Integer.parseInt(item.replace(prefix, "")), tag));
+		configManager.getConfigurationKeys(prefix).forEach(item ->
+		{
+			int id = Integer.parseInt(item.replace(prefix, ""));
+			removeTag(id, tag);
+		});
 	}
 
 	public void removeTag(int itemId, String tag)
 	{
-		final Collection<String> tags = getTags(itemId);
+		Collection<String> tags = getTags(itemId, false);
 		if (tags.remove(Text.standardize(tag)))
 		{
-			setTags(itemId, tags);
+			setTags(itemId, tags, false);
 		}
+
+		tags = getTags(itemId, true);
+		if (tags.remove(Text.standardize(tag)))
+		{
+			setTags(itemId, tags, true);
+		}
+	}
+
+	public void renameTag(String oldTag, String newTag)
+	{
+		List<Integer> items = getItemsForTag(Text.standardize(oldTag));
+		items.forEach(id ->
+		{
+			Collection<String> tags = getTags(id, id < 0);
+
+			tags.remove(Text.standardize(oldTag));
+			tags.add(Text.standardize(newTag));
+
+			setTags(id, tags, id < 0);
+		});
+	}
+
+	private int getItemId(int itemId, boolean variation)
+	{
+		itemId = Math.abs(itemId);
+		itemId = itemManager.canonicalize(itemId);
+
+		if (variation)
+		{
+			itemId = ItemVariationMapping.map(itemId) * -1;
+		}
+
+		return itemId;
+	}
+
+	public void registerTag(String name, BankTag tag)
+	{
+		customTags.put(name, tag);
+	}
+
+	public void unregisterTag(String name)
+	{
+		customTags.remove(name);
 	}
 }

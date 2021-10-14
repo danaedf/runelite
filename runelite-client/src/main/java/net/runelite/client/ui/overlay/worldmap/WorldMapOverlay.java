@@ -24,54 +24,68 @@
  */
 package net.runelite.client.ui.overlay.worldmap;
 
-import java.awt.Color;
+import com.google.common.base.Splitter;
+import com.google.common.base.Strings;
 import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.Area;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
+import net.runelite.api.MenuAction;
+import net.runelite.api.MenuEntry;
 import net.runelite.api.Point;
 import net.runelite.api.RenderOverview;
 import net.runelite.api.coords.WorldPoint;
+import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.widgets.JavaScriptCallback;
 import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
-import net.runelite.client.input.MouseManager;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.ui.FontManager;
+import net.runelite.client.ui.JagexColors;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayPriority;
+import net.runelite.client.util.ColorUtil;
 
 @Singleton
 public class WorldMapOverlay extends Overlay
 {
-	private static final Color TOOLTIP_BACKGROUND = new Color(255, 255, 160);
+	private static final String FOCUS_ON = "Focus on";
+
 	private static final int TOOLTIP_OFFSET_HEIGHT = 25;
 	private static final int TOOLTIP_OFFSET_WIDTH = 5;
 	private static final int TOOLTIP_PADDING_HEIGHT = 1;
 	private static final int TOOLTIP_PADDING_WIDTH = 2;
+	private static final int TOOLTIP_TEXT_OFFSET_HEIGHT = -2;
+
+	private static final Splitter TOOLTIP_SPLITTER = Splitter.on("<br>").trimResults().omitEmptyStrings();
 
 	private final WorldMapPointManager worldMapPointManager;
 	private final Client client;
 
+	private final List<MenuEntry> mapMenuEntries = new ArrayList<>();
+
 	@Inject
 	private WorldMapOverlay(
 		Client client,
-		WorldMapPointManager worldMapPointManager,
-		MouseManager mouseManager,
-		WorldMapOverlayMouseListener worldMapOverlayMouseListener)
+		WorldMapPointManager worldMapPointManager)
 	{
 		this.client = client;
 		this.worldMapPointManager = worldMapPointManager;
 		setPosition(OverlayPosition.DYNAMIC);
 		setPriority(OverlayPriority.HIGHEST);
-		setLayer(OverlayLayer.ABOVE_WIDGETS);
-		mouseManager.registerMouseListener(worldMapOverlayMouseListener);
+		setLayer(OverlayLayer.MANUAL);
+		drawAfterInterface(WidgetID.WORLD_MAP_GROUP_ID);
 	}
 
 	@Override
@@ -85,17 +99,43 @@ public class WorldMapOverlay extends Overlay
 		}
 
 		Widget widget = client.getWidget(WidgetInfo.WORLD_MAP_VIEW);
-		if (widget == null)
+		Widget bottomBar = client.getWidget(WidgetInfo.WORLD_MAP_BOTTOM_BAR);
+		if (widget == null || bottomBar == null)
 		{
 			return null;
 		}
 
+		bottomBar.setOnTimerListener((JavaScriptCallback) ev ->
+		{
+			if (client.isMenuOpen() || mapMenuEntries.isEmpty())
+			{
+				return;
+			}
+
+			MenuEntry[] entries = client.getMenuEntries();
+			int end = entries.length;
+			entries = Arrays.copyOf(entries, end + mapMenuEntries.size());
+			for (int i = 0; i < mapMenuEntries.size(); i++)
+			{
+				entries[end + i] = mapMenuEntries.get(i);
+			}
+			client.setMenuEntries(entries);
+		});
+		bottomBar.setHasListener(true);
+
 		final Rectangle worldMapRectangle = widget.getBounds();
 		final Area mapViewArea = getWorldMapClipArea(worldMapRectangle);
-		final Rectangle canvasBounds = client.getCanvas().getBounds();
-		// in fixed, the bounds are offset by the size of the black borders outside the canvas
-		canvasBounds.setLocation(0, 0);
+		final Rectangle canvasBounds = new Rectangle(0, 0, client.getCanvasWidth(), client.getCanvasHeight());
 		final Area canvasViewArea = getWorldMapClipArea(canvasBounds);
+		Area currentClip = null;
+
+		Point mousePos = client.getMouseCanvasPosition();
+		if (!mapViewArea.contains(mousePos.getX(), mousePos.getY()))
+		{
+			mousePos = null;
+		}
+
+		mapMenuEntries.clear();
 
 		WorldMapPoint tooltipPoint = null;
 
@@ -107,18 +147,42 @@ public class WorldMapOverlay extends Overlay
 			if (image != null && point != null)
 			{
 				Point drawPoint = mapWorldPointToGraphicsPoint(point);
-
 				if (drawPoint == null)
 				{
-					worldPoint.setClickbox(null);
 					continue;
+				}
+
+				if (worldPoint.isSnapToEdge() && canvasViewArea != currentClip)
+				{
+					graphics.setClip(canvasViewArea);
+					currentClip = canvasViewArea;
+				}
+				else if (!worldPoint.isSnapToEdge() && mapViewArea != currentClip)
+				{
+					graphics.setClip(mapViewArea);
+					currentClip = mapViewArea;
 				}
 
 				if (worldPoint.isSnapToEdge())
 				{
-					graphics.setClip(canvasViewArea);
+					// Get a smaller rect for edge-snapped icons so they display correctly at the edge
+					final Rectangle snappedRect = widget.getBounds();
+					snappedRect.grow(-image.getWidth() / 2, -image.getHeight() / 2);
 
-					if (worldMapRectangle.contains(drawPoint.getX(), drawPoint.getY()))
+					final Rectangle unsnappedRect = new Rectangle(snappedRect);
+					if (worldPoint.getImagePoint() != null)
+					{
+						int dx = worldPoint.getImagePoint().getX() - (image.getWidth() / 2);
+						int dy = worldPoint.getImagePoint().getY() - (image.getHeight() / 2);
+						unsnappedRect.translate(dx, dy);
+					}
+					// Make the unsnap rect slightly smaller so a smaller snapped image doesn't cause a freak out
+					if (worldPoint.isCurrentlyEdgeSnapped())
+					{
+						unsnappedRect.grow(-image.getWidth(), -image.getHeight());
+					}
+
+					if (unsnappedRect.contains(drawPoint.getX(), drawPoint.getY()))
 					{
 						if (worldPoint.isCurrentlyEdgeSnapped())
 						{
@@ -128,17 +192,13 @@ public class WorldMapOverlay extends Overlay
 					}
 					else
 					{
-						drawPoint = clipToRectangle(drawPoint, worldMapRectangle);
+						drawPoint = clipToRectangle(drawPoint, snappedRect);
 						if (!worldPoint.isCurrentlyEdgeSnapped())
 						{
 							worldPoint.setCurrentlyEdgeSnapped(true);
 							worldPoint.onEdgeSnap();
 						}
 					}
-				}
-				else
-				{
-					graphics.setClip(mapViewArea);
 				}
 
 				int drawX = drawPoint.getX();
@@ -157,13 +217,38 @@ public class WorldMapOverlay extends Overlay
 
 				graphics.drawImage(image, drawX, drawY, null);
 				Rectangle clickbox = new Rectangle(drawX, drawY, image.getWidth(), image.getHeight());
-				worldPoint.setClickbox(clickbox);
-
-				if (worldPoint.isTooltipVisible())
+				if (mousePos != null && clickbox.contains(mousePos.getX(), mousePos.getY()))
 				{
-					tooltipPoint = worldPoint;
+					if (!Strings.isNullOrEmpty(worldPoint.getTooltip()))
+					{
+						tooltipPoint = worldPoint;
+					}
+
+					if (worldPoint.isJumpOnClick())
+					{
+						assert worldPoint.getName() != null;
+
+						WorldPoint target = worldPoint.getTarget();
+						if (target == null)
+						{
+							target = worldPoint.getWorldPoint();
+						}
+
+						MenuEntry entry = new MenuEntry();
+						entry.setType(MenuAction.RUNELITE.getId());
+						entry.setOption(FOCUS_ON);
+						entry.setTarget(ColorUtil.wrapWithColorTag(worldPoint.getName(), JagexColors.MENU_TARGET));
+						entry.setIdentifier(target.getPlane() << 28 | target.getX() << 14 | target.getY());
+						mapMenuEntries.add(entry);
+					}
 				}
 			}
+		}
+
+		final Widget rsTooltip = client.getWidget(WidgetInfo.WORLD_MAP_TOOLTIP);
+		if (rsTooltip != null)
+		{
+			rsTooltip.setHidden(tooltipPoint != null);
 		}
 
 		if (tooltipPoint != null)
@@ -174,8 +259,24 @@ public class WorldMapOverlay extends Overlay
 		return null;
 	}
 
+	@Subscribe
+	private void onMenuOptionClicked(MenuOptionClicked ev)
+	{
+		if (ev.getMenuAction() == MenuAction.RUNELITE && FOCUS_ON.equals(ev.getMenuOption()))
+		{
+			int pxy = ev.getId();
+			WorldPoint wp = new WorldPoint(
+				pxy >> 14 & 0x3fff,
+				pxy & 0x3fff,
+				pxy >> 28);
+
+			client.getRenderOverview().setWorldMapPositionTarget(wp);
+		}
+	}
+
 	/**
 	 * Get the screen coordinates for a WorldPoint on the world map
+	 *
 	 * @param worldPoint WorldPoint to get screen coordinates of
 	 * @return Point of screen coordinates of the center of the world point
 	 */
@@ -188,7 +289,7 @@ public class WorldMapOverlay extends Overlay
 			return null;
 		}
 
-		Float pixelsPerTile = ro.getWorldMapZoom();
+		float pixelsPerTile = ro.getWorldMapZoom();
 
 		Widget map = client.getWidget(WidgetInfo.WORLD_MAP_VIEW);
 		if (map != null)
@@ -257,21 +358,35 @@ public class WorldMapOverlay extends Overlay
 			return;
 		}
 
+		List<String> rows = TOOLTIP_SPLITTER.splitToList(tooltip);
+
+		if (rows.isEmpty())
+		{
+			return;
+		}
+
 		drawPoint = new Point(drawPoint.getX() + TOOLTIP_OFFSET_WIDTH, drawPoint.getY() + TOOLTIP_OFFSET_HEIGHT);
 
-		graphics.setClip(client.getCanvas().getBounds());
-		graphics.setColor(TOOLTIP_BACKGROUND);
+		final Rectangle bounds = new Rectangle(0, 0, client.getCanvasWidth(), client.getCanvasHeight());
+		final Area mapArea = getWorldMapClipArea(bounds);
+		graphics.setClip(mapArea);
+		graphics.setColor(JagexColors.TOOLTIP_BACKGROUND);
 		graphics.setFont(FontManager.getRunescapeFont());
 		FontMetrics fm = graphics.getFontMetrics();
-		int width = fm.stringWidth(tooltip);
+		int width = rows.stream().map(fm::stringWidth).max(Integer::compareTo).get();
 		int height = fm.getHeight();
 
-		Rectangle tooltipRect = new Rectangle(drawPoint.getX() - TOOLTIP_PADDING_WIDTH, drawPoint.getY() - TOOLTIP_PADDING_HEIGHT, width + TOOLTIP_PADDING_WIDTH * 2, height + TOOLTIP_PADDING_HEIGHT * 2);
+		Rectangle tooltipRect = new Rectangle(drawPoint.getX() - TOOLTIP_PADDING_WIDTH, drawPoint.getY() - TOOLTIP_PADDING_HEIGHT, width + TOOLTIP_PADDING_WIDTH * 2, height * rows.size() + TOOLTIP_PADDING_HEIGHT * 2);
 		graphics.fillRect((int) tooltipRect.getX(), (int) tooltipRect.getY(), (int) tooltipRect.getWidth(), (int) tooltipRect.getHeight());
 
-		graphics.setColor(Color.black);
+		graphics.setColor(JagexColors.TOOLTIP_BORDER);
 		graphics.drawRect((int) tooltipRect.getX(), (int) tooltipRect.getY(), (int) tooltipRect.getWidth(), (int) tooltipRect.getHeight());
-		graphics.drawString(tooltip, drawPoint.getX(), drawPoint.getY() + height);
+
+		graphics.setColor(JagexColors.TOOLTIP_TEXT);
+		for (int i = 0; i < rows.size(); i++)
+		{
+			graphics.drawString(rows.get(i), drawPoint.getX(), drawPoint.getY() + TOOLTIP_TEXT_OFFSET_HEIGHT + (i + 1) * height);
+		}
 	}
 
 	private Point clipToRectangle(Point drawPoint, Rectangle mapDisplayRectangle)

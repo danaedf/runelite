@@ -25,6 +25,7 @@
 package net.runelite.client.plugins.tileindicators;
 
 import java.awt.Color;
+import net.runelite.client.config.Alpha;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
@@ -32,10 +33,12 @@ import net.runelite.client.config.ConfigItem;
 @ConfigGroup("tileindicators")
 public interface TileIndicatorsConfig extends Config
 {
+	@Alpha
 	@ConfigItem(
 		keyName = "highlightDestinationColor",
-		name = "Color of current destination highlighting",
-		description = "Configures the highlight color of current destination"
+		name = "Destination tile",
+		description = "Configures the highlight color of current destination",
+		position = 1
 	)
 	default Color highlightDestinationColor()
 	{
@@ -45,7 +48,8 @@ public interface TileIndicatorsConfig extends Config
 	@ConfigItem(
 		keyName = "highlightDestinationTile",
 		name = "Highlight destination tile",
-		description = "Highlights tile player is walking to"
+		description = "Highlights tile player is walking to",
+		position = 2
 	)
 	default boolean highlightDestinationTile()
 	{
@@ -53,12 +57,81 @@ public interface TileIndicatorsConfig extends Config
 	}
 
 	@ConfigItem(
+		keyName = "destinationTileBorderWidth",
+		name = "Destination border width",
+		description = "Width of the destination tile marker border",
+		position = 3
+	)
+	default double destinationTileBorderWidth()
+	{
+		return 2;
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "highlightHoveredColor",
+		name = "Hovered tile",
+		description = "Configures the highlight color of hovered tile",
+		position = 4
+	)
+	default Color highlightHoveredColor()
+	{
+		return new Color(0, 0, 0, 0);
+	}
+
+	@ConfigItem(
 		keyName = "highlightHoveredTile",
 		name = "Highlight hovered tile",
-		description = "Highlights tile player is hovering with mouse"
+		description = "Highlights tile player is hovering with mouse",
+		position = 5
 	)
 	default boolean highlightHoveredTile()
 	{
 		return false;
+	}
+
+	@ConfigItem(
+		keyName = "hoveredTileBorderWidth",
+		name = "Hovered tile border width",
+		description = "Width of the hovered tile marker border",
+		position = 6
+	)
+	default double hoveredTileBorderWidth()
+	{
+		return 2;
+	}
+
+	@Alpha
+	@ConfigItem(
+		keyName = "highlightCurrentColor",
+		name = "True tile",
+		description = "Configures the highlight color of current true tile",
+		position = 7
+	)
+	default Color highlightCurrentColor()
+	{
+		return Color.CYAN;
+	}
+
+	@ConfigItem(
+		keyName = "highlightCurrentTile",
+		name = "Highlight true tile",
+		description = "Highlights true tile player is on as seen by server",
+		position = 8
+	)
+	default boolean highlightCurrentTile()
+	{
+		return false;
+	}
+
+	@ConfigItem(
+		keyName = "currentTileBorderWidth",
+		name = "True tile border width",
+		description = "Width of the true tile marker border",
+		position = 9
+	)
+	default double currentTileBorderWidth()
+	{
+		return 2;
 	}
 }
