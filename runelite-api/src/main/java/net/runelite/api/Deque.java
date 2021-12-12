@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Adam <Adam@sigterm.info>
+ * Copyright (c) 2021, Adam <Adam@sigterm.info>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -25,22 +25,12 @@
 package net.runelite.api;
 
 /**
- * Utility class containing ASM opcodes used by the RuneLite client.
+ * A doubly linked list
  */
-public class Opcodes
+public interface Deque<T> extends Iterable<T>
 {
 	/**
-	 * opcode used to return from scripts.
+	 * clear the deque
 	 */
-	public static final int RETURN = 21;
-
-	/**
-	 * opcode used to invoke scripts.
-	 */
-	public static final int INVOKE = 40;
-
-	/**
-	 * RuneLite execution opcode used to inject scripts.
-	 */
-	public static final int RUNELITE_EXECUTE = 6599;
+	void clear();
 }

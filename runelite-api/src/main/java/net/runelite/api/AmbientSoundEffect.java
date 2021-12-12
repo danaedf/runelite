@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017, Adam <Adam@sigterm.info>
+ * Copyright (c) 2021, Adam <Adam@sigterm.info>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,33 +22,38 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.api.events;
+package net.runelite.api;
 
-import javax.annotation.Nullable;
-import lombok.Data;
-import net.runelite.api.widgets.WidgetInfo;
+import net.runelite.api.coords.LocalPoint;
 
 /**
- * A MenuManager widget menu was clicked. This event is fired only for MenuManager managed custom menus.
+ * An ambient sound effect. These are loaded only at scene load and are used to play ambient
+ * sound effects that are purely client side and not sent from the server.
  */
-@Data
-public class WidgetMenuOptionClicked
+public interface AmbientSoundEffect
 {
 	/**
-	 * The clicked menu option.
+	 * The id of the sound effect
+	 * @see SoundEffectID
+	 * @return
 	 */
-	private String menuOption;
+	int getSoundEffectId();
+
 	/**
-	 * The clicked menu target.
+	 * The plane the sound effect is on
+	 * @return
 	 */
-	private String menuTarget;
+	int getPlane();
+
 	/**
-	 * The WidgetInfo of the widget that was clicked, if available.
+	 * The min x/y position of the area this sound effect is at.
+	 * @return
 	 */
-	@Nullable
-	private WidgetInfo widget;
+	LocalPoint getMinPosition();
+
 	/**
-	 * The widget id of the widget that was clicked.
+	 * The max x/y position of the area this sound effect is at
+	 * @return
 	 */
-	private int widgetId;
+	LocalPoint getMaxPosition();
 }

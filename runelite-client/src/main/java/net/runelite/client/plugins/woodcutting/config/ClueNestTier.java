@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Shaun Dreclin <shaundreclin@gmail.com>
+ * Copyright (c) 2021, Tal <https://github.com/talsk>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,32 +22,31 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.roguesden;
+package net.runelite.client.plugins.woodcutting.config;
 
-import com.google.common.collect.Sets;
-import java.util.Set;
-import static net.runelite.api.ObjectID.*;
-import static net.runelite.api.NullObjectID.*;
+import com.google.common.collect.ImmutableMap;
+import net.runelite.api.ItemID;
 
-class Obstacles
+public enum ClueNestTier
 {
-	public static final Set<Integer> OBSTACLE_IDS_HULL = Sets.newHashSet(
-			SPINNING_BLADES_7224,
-			CONTORTION_BARS,
-			PENDULUM,
-			WALL_7249,	/*Wall crushers*/
-			WALL_7248,	/*Wall blade*/
-			LEDGE_7240,	/*Ledge climb*/
-			NULL_7235	/*Wall safe*/
-	);
+	BEGINNER,
+	EASY,
+	MEDIUM,
+	HARD,
+	ELITE,
+	DISABLED;
 
-	public static final Set<Integer> OBSTACLE_IDS_TILE = Sets.newHashSet(
-			FLOOR,		/*Floor spikes*/
-			WALL_7228,	/*Wall spikes*/
-			WALL_7229,	/*Wall spears*/
-			FLOOR_7245,	/*Pressure pad a*/
-			FLOOR_7230,	/*Pressure pad b*/
-			BLADE_7252,	/*Floor blade*/
-			7239		/*Bridge [Ground object]*/
-	);
+
+	private static final ImmutableMap<Integer, ClueNestTier> CLUE_NEST_ID_TO_TIER = new ImmutableMap.Builder<Integer, ClueNestTier>()
+		.put(ItemID.CLUE_NEST_ELITE, ClueNestTier.ELITE)
+		.put(ItemID.CLUE_NEST_HARD, ClueNestTier.HARD)
+		.put(ItemID.CLUE_NEST_MEDIUM, ClueNestTier.MEDIUM)
+		.put(ItemID.CLUE_NEST_EASY, ClueNestTier.EASY)
+		.put(ItemID.CLUE_NEST_BEGINNER, ClueNestTier.BEGINNER)
+		.build();
+
+	static public ClueNestTier getTierFromItem(int itemId)
+	{
+		return CLUE_NEST_ID_TO_TIER.get(itemId);
+	}
 }
