@@ -73,29 +73,27 @@ import static net.runelite.api.widgets.WidgetID.DIARY_QUEST_GROUP_ID;
 import static net.runelite.api.widgets.WidgetID.KILL_LOGS_GROUP_ID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.chat.ChatClient;
 import net.runelite.client.chat.ChatColorType;
 import net.runelite.client.chat.ChatCommandManager;
 import net.runelite.client.chat.ChatMessageBuilder;
-import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.config.RuneLiteConfig;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ChatInput;
 import net.runelite.client.game.ItemManager;
+import net.runelite.client.hiscore.HiscoreClient;
+import net.runelite.client.hiscore.HiscoreEndpoint;
+import net.runelite.client.hiscore.HiscoreResult;
+import net.runelite.client.hiscore.HiscoreSkill;
+import net.runelite.client.hiscore.Skill;
 import net.runelite.client.input.KeyManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.util.QuantityFormatter;
 import net.runelite.client.util.Text;
-import net.runelite.http.api.chat.ChatClient;
 import net.runelite.http.api.chat.Duels;
-import net.runelite.http.api.hiscore.HiscoreClient;
-import net.runelite.http.api.hiscore.HiscoreEndpoint;
-import net.runelite.http.api.hiscore.HiscoreResult;
-import net.runelite.http.api.hiscore.HiscoreSkill;
-import net.runelite.http.api.hiscore.SingleHiscoreSkillResult;
-import net.runelite.http.api.hiscore.Skill;
 import net.runelite.http.api.item.ItemPrice;
 import okhttp3.OkHttpClient;
 import org.apache.commons.text.WordUtils;
@@ -175,9 +173,6 @@ public class ChatCommandsPlugin extends Plugin
 
 	@Inject
 	private ItemManager itemManager;
-
-	@Inject
-	private ChatMessageManager chatMessageManager;
 
 	@Inject
 	private ChatCommandManager chatCommandManager;
@@ -841,7 +836,6 @@ public class ChatCommandsPlugin extends Plugin
 		log.debug("Setting response {}", response);
 		final MessageNode messageNode = chatMessage.getMessageNode();
 		messageNode.setRuneLiteFormatMessage(response);
-		chatMessageManager.update(messageNode);
 		client.refreshChat();
 	}
 
@@ -931,7 +925,6 @@ public class ChatCommandsPlugin extends Plugin
 		log.debug("Setting response {}", response);
 		final MessageNode messageNode = chatMessage.getMessageNode();
 		messageNode.setRuneLiteFormatMessage(response);
-		chatMessageManager.update(messageNode);
 		client.refreshChat();
 	}
 
@@ -975,7 +968,6 @@ public class ChatCommandsPlugin extends Plugin
 		log.debug("Setting response {}", response);
 		final MessageNode messageNode = chatMessage.getMessageNode();
 		messageNode.setRuneLiteFormatMessage(response);
-		chatMessageManager.update(messageNode);
 		client.refreshChat();
 	}
 
@@ -1062,7 +1054,6 @@ public class ChatCommandsPlugin extends Plugin
 		log.debug("Setting response {}", response);
 		final MessageNode messageNode = chatMessage.getMessageNode();
 		messageNode.setRuneLiteFormatMessage(response);
-		chatMessageManager.update(messageNode);
 		client.refreshChat();
 	}
 
@@ -1138,7 +1129,6 @@ public class ChatCommandsPlugin extends Plugin
 		log.debug("Setting response {}", response);
 		final MessageNode messageNode = chatMessage.getMessageNode();
 		messageNode.setRuneLiteFormatMessage(response);
-		chatMessageManager.update(messageNode);
 		client.refreshChat();
 	}
 
@@ -1232,7 +1222,6 @@ public class ChatCommandsPlugin extends Plugin
 		log.debug("Setting response {}", response);
 		final MessageNode messageNode = chatMessage.getMessageNode();
 		messageNode.setRuneLiteFormatMessage(response);
-		chatMessageManager.update(messageNode);
 		client.refreshChat();
 	}
 
@@ -1322,7 +1311,6 @@ public class ChatCommandsPlugin extends Plugin
 
 			log.debug("Setting response {}", response);
 			messageNode.setRuneLiteFormatMessage(response);
-			chatMessageManager.update(messageNode);
 			client.refreshChat();
 		}
 	}
@@ -1372,16 +1360,14 @@ public class ChatCommandsPlugin extends Plugin
 
 		try
 		{
-			final SingleHiscoreSkillResult result = hiscoreClient.lookup(lookup.getName(), skill, lookup.getEndpoint());
-
+			final HiscoreResult result = hiscoreClient.lookup(lookup.getName(), lookup.getEndpoint());
 			if (result == null)
 			{
 				log.warn("unable to look up skill {} for {}: not found", skill, search);
 				return;
 			}
 
-			final Skill hiscoreSkill = result.getSkill();
-
+			final Skill hiscoreSkill = result.getSkill(skill);
 			ChatMessageBuilder chatMessageBuilder = new ChatMessageBuilder()
 				.append(ChatColorType.NORMAL)
 				.append("Level ")
@@ -1406,7 +1392,6 @@ public class ChatCommandsPlugin extends Plugin
 			log.debug("Setting response {}", response);
 			final MessageNode messageNode = chatMessage.getMessageNode();
 			messageNode.setRuneLiteFormatMessage(response);
-			chatMessageManager.update(messageNode);
 			client.refreshChat();
 		}
 		catch (IOException ex)
@@ -1491,7 +1476,6 @@ public class ChatCommandsPlugin extends Plugin
 			log.debug("Setting response {}", response);
 			final MessageNode messageNode = chatMessage.getMessageNode();
 			messageNode.setRuneLiteFormatMessage(response);
-			chatMessageManager.update(messageNode);
 			client.refreshChat();
 		}
 		catch (IOException ex)
@@ -1619,7 +1603,6 @@ public class ChatCommandsPlugin extends Plugin
 			log.debug("Setting response {}", response);
 			final MessageNode messageNode = chatMessage.getMessageNode();
 			messageNode.setRuneLiteFormatMessage(response);
-			chatMessageManager.update(messageNode);
 			client.refreshChat();
 		}
 		catch (IOException ex)
@@ -1713,7 +1696,6 @@ public class ChatCommandsPlugin extends Plugin
 			log.debug("Setting response {}", response);
 			final MessageNode messageNode = chatMessage.getMessageNode();
 			messageNode.setRuneLiteFormatMessage(response);
-			chatMessageManager.update(messageNode);
 			client.refreshChat();
 		}
 		catch (IOException ex)
@@ -1743,9 +1725,10 @@ public class ChatCommandsPlugin extends Plugin
 		if (chatMessage.getType() == ChatMessageType.PUBLICCHAT || chatMessage.getType() == ChatMessageType.MODCHAT)
 		{
 			// Public chat on a seasonal world is always seasonal or tournament hiscores, regardless of icon
-			if (client.getWorldType().contains(WorldType.SEASONAL))
+			HiscoreEndpoint endpoint = HiscoreEndpoint.fromWorldTypes(client.getWorldType());
+			if (endpoint != HiscoreEndpoint.NORMAL)
 			{
-				return new HiscoreLookup(player, HiscoreEndpoint.TOURNAMENT);
+				return new HiscoreLookup(player, endpoint);
 			}
 		}
 
@@ -1791,9 +1774,11 @@ public class ChatCommandsPlugin extends Plugin
 	private HiscoreEndpoint getLocalHiscoreEndpointType()
 	{
 		EnumSet<WorldType> worldType = client.getWorldType();
-		if (worldType.contains(WorldType.SEASONAL))
+		HiscoreEndpoint endpoint = HiscoreEndpoint.fromWorldTypes(worldType);
+		if (endpoint != HiscoreEndpoint.NORMAL)
 		{
-			return HiscoreEndpoint.TOURNAMENT;
+			// leagues/dmmt or dmm
+			return endpoint;
 		}
 
 		return toEndPoint(client.getAccountType());

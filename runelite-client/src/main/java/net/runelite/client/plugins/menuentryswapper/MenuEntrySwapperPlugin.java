@@ -29,7 +29,6 @@ package net.runelite.client.plugins.menuentryswapper;
 import com.google.common.annotations.VisibleForTesting;
 import static com.google.common.base.Predicates.alwaysTrue;
 import static com.google.common.base.Predicates.equalTo;
-import com.google.common.base.Strings;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedHashMultimap;
@@ -53,7 +52,6 @@ import net.runelite.api.NPC;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.MenuEntryAdded;
 import net.runelite.api.events.MenuOpened;
-import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.PostItemComposition;
 import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
@@ -129,7 +127,6 @@ public class MenuEntrySwapperPlugin extends Plugin
 		MenuAction.ITEM_THIRD_OPTION,
 		MenuAction.ITEM_FOURTH_OPTION,
 		MenuAction.ITEM_FIFTH_OPTION,
-		MenuAction.EXAMINE_ITEM,
 		MenuAction.ITEM_USE
 	);
 
@@ -418,6 +415,9 @@ public class MenuEntrySwapperPlugin extends Plugin
 		swap("eat", "guzzle", config::swapRockCake);
 
 		swap("travel", "dive", config::swapRowboatDive);
+
+		swap("climb", "climb-up", () -> (shiftModifier() ? config.swapStairsShiftClick() : config.swapStairsLeftClick()) == MenuEntrySwapperConfig.StairsMode.CLIMB_UP);
+		swap("climb", "climb-down", () -> (shiftModifier() ? config.swapStairsShiftClick() : config.swapStairsLeftClick()) == MenuEntrySwapperConfig.StairsMode.CLIMB_DOWN);
 	}
 
 	private void swap(String option, String swappedOption, Supplier<Boolean> enabled)
@@ -530,7 +530,7 @@ public class MenuEntrySwapperPlugin extends Plugin
 			return;
 		}
 
-		MenuAction activeAction = MenuAction.ITEM_USE;
+		MenuAction activeAction = null;
 		final ItemComposition itemComposition = itemManager.getItemComposition(itemId);
 
 		if (configuringShiftClick)
@@ -543,20 +543,18 @@ public class MenuEntrySwapperPlugin extends Plugin
 			{
 				activeAction = MenuAction.of(MenuAction.ITEM_FIRST_OPTION.getId() + shiftClickActionIndex);
 			}
+			else
+			{
+				// Otherwise it is possible that we have Use swap configured
+				Integer config = getSwapConfig(true, itemId);
+				if (config != null && config == -1)
+				{
+					activeAction = MenuAction.ITEM_USE;
+				}
+			}
 		}
 		else
 		{
-			// The default left click on items is the highest priority action 0-2, and otherwise is use.
-			final String[] actions = itemComposition.getInventoryActions();
-			for (int i = 0; i <= 2; ++i)
-			{
-				if (!Strings.isNullOrEmpty(actions[i]))
-				{
-					activeAction = MenuAction.of(MenuAction.ITEM_FIRST_OPTION.getId() + i);
-					break;
-				}
-			}
-
 			// Apply left click action from configuration
 			Integer config = getSwapConfig(false, itemId);
 			if (config != null)
@@ -576,6 +574,13 @@ public class MenuEntrySwapperPlugin extends Plugin
 			if (ITEM_MENU_TYPES.contains(menuAction) && entry.getIdentifier() == itemId)
 			{
 				entry.setType(MenuAction.RUNELITE);
+				entry.onClick(e ->
+				{
+					int index = menuAction == MenuAction.ITEM_USE
+						? -1
+						: menuAction.getId() - MenuAction.ITEM_FIRST_OPTION.getId();
+					setSwapConfig(configuringShiftClick, itemId, index);
+				});
 
 				if (activeAction == menuAction)
 				{
@@ -602,17 +607,19 @@ public class MenuEntrySwapperPlugin extends Plugin
 
 		final boolean isDepositBoxPlayerInventory = widgetGroupId == WidgetID.DEPOSIT_BOX_GROUP_ID;
 		final boolean isChambersOfXericStorageUnitPlayerInventory = widgetGroupId == WidgetID.CHAMBERS_OF_XERIC_STORAGE_UNIT_INVENTORY_GROUP_ID;
+		final boolean isGroupStoragePlayerInventory = widgetGroupId == WidgetID.GROUP_STORAGE_INVENTORY_GROUP_ID;
 		// Swap to shift-click deposit behavior
 		// Deposit- op 1 is the current withdraw amount 1/5/10/x for deposit box interface and chambers of xeric storage unit.
 		// Deposit- op 2 is the current withdraw amount 1/5/10/x for bank interface
 		if (shiftModifier() && config.bankDepositShiftClick() != ShiftDepositMode.OFF
 			&& menuEntryAdded.getType() == MenuAction.CC_OP.getId()
-			&& menuEntryAdded.getIdentifier() == (isDepositBoxPlayerInventory || isChambersOfXericStorageUnitPlayerInventory ? 1 : 2)
+			&& menuEntryAdded.getIdentifier() == (isDepositBoxPlayerInventory || isGroupStoragePlayerInventory || isChambersOfXericStorageUnitPlayerInventory ? 1 : 2)
 			&& (menuEntryAdded.getOption().startsWith("Deposit-") || menuEntryAdded.getOption().startsWith("Store") || menuEntryAdded.getOption().startsWith("Donate")))
 		{
 			ShiftDepositMode shiftDepositMode = config.bankDepositShiftClick();
 			final int opId = isDepositBoxPlayerInventory ? shiftDepositMode.getIdentifierDepositBox()
 				: isChambersOfXericStorageUnitPlayerInventory ? shiftDepositMode.getIdentifierChambersStorageUnit()
+				: isGroupStoragePlayerInventory ? shiftDepositMode.getIdentifierGroupStorage()
 				: shiftDepositMode.getIdentifier();
 			final MenuAction action = opId >= 6 ? MenuAction.CC_OP_LOW_PRIORITY : MenuAction.CC_OP;
 			bankModeSwap(action, opId);
@@ -663,49 +670,6 @@ public class MenuEntrySwapperPlugin extends Plugin
 		}
 	}
 
-	@Subscribe
-	public void onMenuOptionClicked(MenuOptionClicked event)
-	{
-		if (event.getMenuAction() != MenuAction.RUNELITE || event.getParam1() != WidgetInfo.INVENTORY.getId())
-		{
-			return;
-		}
-
-		int itemId = event.getId();
-
-		if (itemId == -1)
-		{
-			return;
-		}
-
-		String option = event.getMenuOption();
-		String target = event.getMenuTarget();
-		ItemComposition itemComposition = itemManager.getItemComposition(itemId);
-
-		if (!itemComposition.getName().equals(Text.removeTags(target)))
-		{
-			return;
-		}
-
-		if (option.equals("Use")) //because "Use" is not in inventoryActions
-		{
-			setSwapConfig(configuringShiftClick, itemId, -1);
-		}
-		else
-		{
-			String[] inventoryActions = itemComposition.getInventoryActions();
-
-			for (int index = 0; index < inventoryActions.length; index++)
-			{
-				if (option.equals(inventoryActions[index]))
-				{
-					setSwapConfig(configuringShiftClick, itemId, index);
-					break;
-				}
-			}
-		}
-	}
-
 	private void swapMenuEntry(MenuEntry[] menuEntries, int index, MenuEntry menuEntry)
 	{
 		final int eventId = menuEntry.getIdentifier();
@@ -751,7 +715,7 @@ public class MenuEntrySwapperPlugin extends Plugin
 		if (itemOp)
 		{
 			Integer swapIndex = getSwapConfig(false, eventId);
-			if (swapIndex != null && index < menuEntries.length - 1)
+			if (swapIndex != null)
 			{
 				MenuAction swapAction = swapIndex >= 0
 					? MenuAction.of(MenuAction.ITEM_FIRST_OPTION.getId() + swapIndex)
@@ -760,8 +724,8 @@ public class MenuEntrySwapperPlugin extends Plugin
 				if (menuAction == swapAction)
 				{
 					swap(optionIndexes, menuEntries, index, menuEntries.length - 1);
-					return;
 				}
+				return;
 			}
 		}
 
@@ -821,7 +785,7 @@ public class MenuEntrySwapperPlugin extends Plugin
 		ItemComposition itemComposition = event.getItemComposition();
 		Integer option = getSwapConfig(true, itemComposition.getId());
 
-		if (option != null)
+		if (option != null && option < itemComposition.getInventoryActions().length)
 		{
 			itemComposition.setShiftClickActionIndex(option);
 		}

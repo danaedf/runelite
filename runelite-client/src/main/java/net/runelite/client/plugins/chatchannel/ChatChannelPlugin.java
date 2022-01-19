@@ -145,6 +145,8 @@ public class ChatChannelPlugin extends Plugin
 		{
 			clientThread.invoke(() -> colorIgnoredPlayers(config.showIgnoresColor()));
 		}
+
+		rebuildClanTitle();
 	}
 
 	@Override
@@ -153,6 +155,7 @@ public class ChatChannelPlugin extends Plugin
 		chats = null;
 		clientThread.invoke(() -> colorIgnoredPlayers(Color.WHITE));
 		rebuildFriendsChat();
+		rebuildClanTitle();
 	}
 
 	@Subscribe
@@ -167,6 +170,8 @@ public class ChatChannelPlugin extends Plugin
 
 			Color ignoreColor = config.showIgnores() ? config.showIgnoresColor() : Color.WHITE;
 			clientThread.invoke(() -> colorIgnoredPlayers(ignoreColor));
+
+			rebuildClanTitle();
 		}
 	}
 
@@ -606,6 +611,18 @@ public class ChatChannelPlugin extends Plugin
 				chatTitle.setText(chatTitle.getText() + " (" + friendsChatManager.getCount() + "/100)");
 			}
 		}
+		else if (event.getScriptId() == ScriptID.CLAN_SIDEPANEL_DRAW)
+		{
+			if (config.clanChatShowOnlineMemberCount())
+			{
+				updateClanTitle(WidgetInfo.CLAN_HEADER, client.getClanChannel());
+			}
+
+			if (config.guestClanChatShowOnlineMemberCount())
+			{
+				updateClanTitle(WidgetInfo.CLAN_GUEST_HEADER, client.getGuestClanChannel());
+			}
+		}
 	}
 
 	private void insertRankIcon(final ChatMessage message)
@@ -615,18 +632,21 @@ public class ChatChannelPlugin extends Plugin
 		if (rank != null && rank != FriendsChatRank.UNRANKED)
 		{
 			int iconNumber = chatIconManager.getIconNumber(rank);
-			final String img = "<img=" + iconNumber + ">";
-			if (message.getType() == ChatMessageType.FRIENDSCHAT)
+			if (iconNumber > -1)
 			{
-				message.getMessageNode()
-					.setSender(message.getMessageNode().getSender() + " " + img);
+				final String img = "<img=" + iconNumber + ">";
+				if (message.getType() == ChatMessageType.FRIENDSCHAT)
+				{
+					message.getMessageNode()
+						.setSender(message.getMessageNode().getSender() + " " + img);
+				}
+				else
+				{
+					message.getMessageNode()
+						.setName(img + message.getMessageNode().getName());
+				}
+				client.refreshChat();
 			}
-			else
-			{
-				message.getMessageNode()
-					.setName(img + message.getMessageNode().getName());
-			}
-			client.refreshChat();
 		}
 	}
 
@@ -738,6 +758,37 @@ public class ChatChannelPlugin extends Plugin
 			}
 
 			listWidget.setTextColor(ignoreColor.getRGB());
+		}
+	}
+
+	private void rebuildClanTitle()
+	{
+		clientThread.invokeLater(() ->
+		{
+			Widget w = client.getWidget(WidgetInfo.CLAN_LAYER);
+			if (w != null)
+			{
+				client.runScript(w.getOnVarTransmitListener());
+			}
+		});
+
+		clientThread.invokeLater(() ->
+		{
+			Widget w = client.getWidget(WidgetInfo.CLAN_GUEST_LAYER);
+			if (w != null)
+			{
+				client.runScript(w.getOnVarTransmitListener());
+			}
+		});
+	}
+
+	private void updateClanTitle(WidgetInfo widget, ClanChannel channel)
+	{
+		Widget header = client.getWidget(widget);
+		if (header != null && channel != null)
+		{
+			Widget title = header.getChild(0);
+			title.setText(title.getText() + " (" + channel.getMembers().size() + ")");
 		}
 	}
 }
