@@ -29,7 +29,7 @@
 	<parent>
 		<groupId>net.runelite</groupId>
 		<artifactId>runelite-parent</artifactId>
-		<version>1.8.10-SNAPSHOT</version>
+		<version>1.8.11-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>runelite-api</artifactId>
@@ -48,6 +48,12 @@
 		<dependency>
 			<groupId>com.google.code.findbugs</groupId>
 			<artifactId>jsr305</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jetbrains</groupId>
+			<artifactId>annotations</artifactId>
+			<version>23.0.0</version>
 			<scope>provided</scope>
 		</dependency>
 
