@@ -26,19 +26,20 @@ package net.runelite.cache.definitions.exporters;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import net.runelite.cache.definitions.ParamDefinition;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import net.runelite.cache.definitions.ObjectDefinition;
 
-public class ObjectExporter
+public class ParamExporter
 {
-	private final ObjectDefinition object;
+	private final ParamDefinition param;
 	private final Gson gson;
 
-	public ObjectExporter(ObjectDefinition object)
+	public ParamExporter(ParamDefinition param)
 	{
-		this.object = object;
+		this.param = param;
 
 		GsonBuilder builder = new GsonBuilder()
 			.disableHtmlEscaping()
@@ -48,7 +49,7 @@ public class ObjectExporter
 
 	public String export()
 	{
-		return gson.toJson(object);
+		return gson.toJson(param);
 	}
 
 	public void exportTo(File file) throws IOException

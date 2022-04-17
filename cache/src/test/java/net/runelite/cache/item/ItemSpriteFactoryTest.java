@@ -56,8 +56,8 @@ public class ItemSpriteFactoryTest
 	@Ignore
 	public void test() throws IOException
 	{
-		File base = StoreLocation.LOCATION,
-			outDir = folder.newFolder();
+		File base = new File("C:\\Users\\dan\\jagexcache\\oldschool\\LIVE"),
+			outDir = new File("C:\\Users\\dan\\IdeaProjects\\OsrsWiki\\data\\cache\\dumps\\item_sprites\\");
 
 		int count = 0;
 

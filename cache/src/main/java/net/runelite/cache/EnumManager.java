@@ -24,78 +24,72 @@
  */
 package net.runelite.cache;
 
+import net.runelite.cache.definitions.EnumDefinition;
+import net.runelite.cache.definitions.exporters.EnumExporter;
+import net.runelite.cache.definitions.loaders.EnumLoader;
+import net.runelite.cache.definitions.providers.EnumProvider;
+import net.runelite.cache.definitions.providers.StructProvider;
+import net.runelite.cache.fs.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.runelite.cache.definitions.ObjectDefinition;
-import net.runelite.cache.definitions.SpriteDefinition;
-import net.runelite.cache.definitions.StructDefinition;
-import net.runelite.cache.definitions.exporters.ObjectExporter;
-import net.runelite.cache.definitions.exporters.SpriteExporter;
-import net.runelite.cache.definitions.exporters.StructExporter;
-import net.runelite.cache.definitions.loaders.StructLoader;
-import net.runelite.cache.definitions.providers.StructProvider;
-import net.runelite.cache.fs.Archive;
-import net.runelite.cache.fs.ArchiveFiles;
-import net.runelite.cache.fs.FSFile;
-import net.runelite.cache.fs.Index;
-import net.runelite.cache.fs.Storage;
-import net.runelite.cache.fs.Store;
-
-public class StructManager implements StructProvider
+public class EnumManager implements EnumProvider
 {
 	private final Store store;
-	private final Map<Integer, StructDefinition> structs = new HashMap<>();
+	private final Map<Integer, EnumDefinition> enums = new HashMap<>();
 
-	public StructManager(Store store)
+	public EnumManager(Store store)
 	{
 		this.store = store;
 	}
 
 	public void load() throws IOException
 	{
-		StructLoader loader = new StructLoader();
+		EnumLoader loader = new EnumLoader();
 
 		Storage storage = store.getStorage();
 		Index index = store.getIndex(IndexType.CONFIGS);
-		Archive archive = index.getArchive(ConfigType.STRUCT.getId());
+		Archive archive = index.getArchive(ConfigType.ENUM.getId());
 
 		byte[] archiveData = storage.loadArchive(archive);
 		ArchiveFiles files = archive.getFiles(archiveData);
 
 		for (FSFile f : files.getFiles())
 		{
-			StructDefinition def = loader.load(f.getFileId(), f.getContents());
-			structs.put(f.getFileId(), def);
+			EnumDefinition def = loader.load(f.getFileId(), f.getContents());
+			if(def != null) {
+				enums.put(f.getFileId(), def);
+			}
 		}
 	}
 
-	public Map<Integer, StructDefinition> getStructs()
+	public Map<Integer, EnumDefinition> getEnums()
 	{
-		return Collections.unmodifiableMap(structs);
+		return Collections.unmodifiableMap(enums);
 	}
 
-	public StructDefinition getStruct(int structId)
+	public EnumDefinition getEnum(int structId)
 	{
-		return structs.get(structId);
+		return enums.get(structId);
 	}
 
 	@Override
-	public StructDefinition provide(int structId)
+	public EnumDefinition provide(int structId)
 	{
-		return getStruct(structId);
+		return getEnum(structId);
 	}
 
 	public void dump(File out) throws IOException
 	{
 		out.mkdirs();
 
-		for (StructDefinition def : structs.values())
+		for (EnumDefinition def : enums.values())
 		{
-			StructExporter exporter = new StructExporter(def);
+			EnumExporter exporter = new EnumExporter(def);
 
 			File targ = new File(out, def.getId() + ".json");
 			exporter.exportTo(targ);

@@ -146,6 +146,11 @@ public class RegionLoader
 		return regions.values();
 	}
 
+	public Region getRegion(int regionId)
+	{
+		return regions.get(regionId);
+	}
+
 	public Region findRegionForWorldCoordinates(int x, int y)
 	{
 		x >>>= 6;

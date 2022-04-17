@@ -45,6 +45,13 @@ public class Cache
 		options.addOption(null, "npcs", true, "directory to dump npcs to");
 		options.addOption(null, "objects", true, "directory to dump objects to");
 		options.addOption(null, "sprites", true, "directory to dump sprites to");
+		options.addOption(null, "interfaces", true, "directory to dump interfaces to");
+		options.addOption(null, "enums", true, "directory to dump enums to");
+		options.addOption(null, "structs", true, "directory to dump structs to");
+		options.addOption(null, "params", true, "directory to dump params to");
+		options.addOption(null, "regions", true, "directory to dump regions to");
+		options.addOption(null, "mapimages", true, "directory to dump map images regions to");
+		options.addOption(null, "models", true, "directory to dump models to");
 
 		CommandLineParser parser = new DefaultParser();
 		CommandLine cmd;
@@ -115,10 +122,94 @@ public class Cache
 			System.out.println("Dumping sprites to " + spritedir);
 			dumpSprites(store, new File(spritedir));
 		}
+		else if (cmd.hasOption("interfaces"))
+		{
+			String interfacedir = cmd.getOptionValue("interfaces");
+
+			if (interfacedir == null)
+			{
+				System.err.println("Interfaces directory must be specified");
+				return;
+			}
+
+			System.out.println("Dumping interfaces to " + interfacedir);
+			dumpInterfaces(store, new File(interfacedir));
+		}
+		else if (cmd.hasOption("enums")){
+			String enumdir = cmd.getOptionValue("enums");
+
+			if (enumdir == null)
+			{
+				System.err.println("Enum directory must be specified");
+				return;
+			}
+
+			System.out.println("Dumping enums to " + enumdir);
+			dumpEnums(store, new File(enumdir));
+		}
+		else if (cmd.hasOption("structs")){
+			String structdir = cmd.getOptionValue("structs");
+
+			if (structdir == null)
+			{
+				System.err.println("Struct directory must be specified");
+				return;
+			}
+
+			System.out.println("Dumping structs to " + structdir);
+			dumpStructs(store, new File(structdir));
+		}
+		else if (cmd.hasOption("params")){
+			String paramdir = cmd.getOptionValue("params");
+
+			if (paramdir == null)
+			{
+				System.err.println("Param directory must be specified");
+				return;
+			}
+
+			System.out.println("Dumping params to " + paramdir);
+			dumpParams(store, new File(paramdir));
+		} else if (cmd.hasOption("regions")){
+			String regiondir = cmd.getOptionValue("regions");
+
+			if (regiondir == null)
+			{
+				System.err.println("Regions directory must be specified");
+				return;
+			}
+
+			System.out.println("Dumping regions to " + regiondir);
+			dumpRegions(store, new File(regiondir));
+		} else if (cmd.hasOption("mapimages")){
+			String imagesdir = cmd.getOptionValue("mapimages");
+
+			if (imagesdir == null)
+			{
+				System.err.println("Map images directory must be specified");
+				return;
+			}
+
+			System.out.println("Dumping map images to " + imagesdir);
+			dumpMapImages(store, new File(imagesdir));
+		}  else if (cmd.hasOption("models")){
+			String imagesdir = cmd.getOptionValue("models");
+
+			if (imagesdir == null)
+			{
+				System.err.println("Models directory must be specified");
+				return;
+			}
+
+			System.out.println("Dumping models to " + imagesdir);
+			dumpModels(store, new File(imagesdir));
+		}
 		else
 		{
 			System.err.println("Nothing to do");
 		}
+
+
 	}
 
 	private static Store loadStore(String cache) throws IOException
@@ -157,5 +248,51 @@ public class Cache
 		SpriteManager dumper = new SpriteManager(store);
 		dumper.load();
 		dumper.export(spritedir);
+	}
+	private static void dumpInterfaces(Store store, File interfacedir) throws IOException
+	{
+		InterfaceManager dumper = new InterfaceManager(store);
+		dumper.load();
+		dumper.export(interfacedir);
+		dumper.java(interfacedir);
+	}
+
+	private static void dumpEnums(Store store, File enumdir) throws IOException
+	{
+		EnumManager dumper = new EnumManager(store);
+		dumper.load();
+		dumper.dump(enumdir);
+	}
+
+	private static void dumpStructs(Store store, File structdir) throws IOException
+	{
+		StructManager dumper = new StructManager(store);
+		dumper.load();
+		dumper.dump(structdir);
+	}
+
+	private static void dumpParams(Store store, File paramdir) throws IOException
+	{
+		ParamManager dumper = new ParamManager(store);
+		dumper.load();
+		dumper.dump(paramdir);
+	}
+
+	private static void dumpRegions(Store store, File regiondir) throws IOException
+	{
+		RegionManager dumper = new RegionManager(store);
+		dumper.load();
+		dumper.dump(regiondir);
+	}
+	private static void dumpMapImages(Store store, File imagedir) throws IOException
+	{
+		MapImageDumper dumper = new MapImageDumper(store);
+		dumper.load();
+		dumper.dump(imagedir);
+	}
+	private static void dumpModels(Store store, File modeldir) throws IOException
+	{
+		ModelDumper dumper = new ModelDumper(store);
+		dumper.dump(modeldir, false);
 	}
 }

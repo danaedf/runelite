@@ -25,6 +25,9 @@
 package net.runelite.cache.definitions.loaders;
 
 import java.util.HashMap;
+
+import net.runelite.cache.ParamManager;
+import net.runelite.cache.definitions.ParamDefinition;
 import net.runelite.cache.definitions.StructDefinition;
 import net.runelite.cache.io.InputStream;
 

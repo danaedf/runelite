@@ -24,40 +24,47 @@
  */
 package net.runelite.cache.util;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import com.google.gson.*;
+import java.io.*;
+import java.net.*;
+import java.net.http.*;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.net.www.http.HttpClient;
 
 public class XteaKeyManager
 {
 	private static final Logger logger = LoggerFactory.getLogger(XteaKeyManager.class);
 
-	private final Map<Integer, int[]> keys = new HashMap<>();
-
-	public void loadKeys(InputStream in)
-	{
-		// CHECKSTYLE:OFF
-		List<XteaKey> k = new Gson()
-			.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), new TypeToken<List<XteaKey>>() { }.getType());
-		// CHECKSTYLE:ON
-
-		for (XteaKey key : k)
-		{
-			keys.put(key.getRegion(), key.getKeys());
+	public XteaKeyManager() {
+		try {
+			URLConnection connection = new URL("https://archive.runestats.com/osrs/xtea/2022-04-13-rev204.json").openConnection();
+			InputStream is = connection.getInputStream();
+			XteaKey[] keys = new Gson().fromJson(new InputStreamReader(is), XteaKey[].class);
+			for (final XteaKey key : keys) {
+				this.keys.put(key.mapsquare, key.key);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
 		}
-
-		logger.info("Loaded {} keys", keys.size());
 	}
+
+	private final Map<Integer, int[]> keys = new HashMap<>();
 
 	public int[] getKeys(int region)
 	{
 		return keys.get(region);
+	}
+
+	private class XteaKey {
+		int mapsquare;
+		int[] key;
 	}
 }

@@ -24,81 +24,79 @@
  */
 package net.runelite.cache;
 
+import net.runelite.cache.definitions.ParamDefinition;
+import net.runelite.cache.definitions.StructDefinition;
+import net.runelite.cache.definitions.exporters.ParamExporter;
+import net.runelite.cache.definitions.exporters.StructExporter;
+import net.runelite.cache.definitions.loaders.ParamLoader;
+import net.runelite.cache.definitions.providers.ParamProvider;
+import net.runelite.cache.fs.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.runelite.cache.definitions.ObjectDefinition;
-import net.runelite.cache.definitions.SpriteDefinition;
-import net.runelite.cache.definitions.StructDefinition;
-import net.runelite.cache.definitions.exporters.ObjectExporter;
-import net.runelite.cache.definitions.exporters.SpriteExporter;
-import net.runelite.cache.definitions.exporters.StructExporter;
-import net.runelite.cache.definitions.loaders.StructLoader;
-import net.runelite.cache.definitions.providers.StructProvider;
-import net.runelite.cache.fs.Archive;
-import net.runelite.cache.fs.ArchiveFiles;
-import net.runelite.cache.fs.FSFile;
-import net.runelite.cache.fs.Index;
-import net.runelite.cache.fs.Storage;
-import net.runelite.cache.fs.Store;
-
-public class StructManager implements StructProvider
+public class ParamManager implements ParamProvider
 {
 	private final Store store;
-	private final Map<Integer, StructDefinition> structs = new HashMap<>();
+	private final Map<Integer, ParamDefinition> params = new HashMap<>();
 
-	public StructManager(Store store)
+	public ParamManager(Store store)
 	{
 		this.store = store;
 	}
 
 	public void load() throws IOException
 	{
-		StructLoader loader = new StructLoader();
+		ParamLoader loader = new ParamLoader();
 
 		Storage storage = store.getStorage();
 		Index index = store.getIndex(IndexType.CONFIGS);
-		Archive archive = index.getArchive(ConfigType.STRUCT.getId());
+		Archive archive = index.getArchive(ConfigType.PARAMS.getId());
 
 		byte[] archiveData = storage.loadArchive(archive);
 		ArchiveFiles files = archive.getFiles(archiveData);
 
 		for (FSFile f : files.getFiles())
 		{
-			StructDefinition def = loader.load(f.getFileId(), f.getContents());
-			structs.put(f.getFileId(), def);
+			ParamDefinition def = loader.load(f.getContents());
+			params.put(f.getFileId(), def);
 		}
-	}
-
-	public Map<Integer, StructDefinition> getStructs()
-	{
-		return Collections.unmodifiableMap(structs);
-	}
-
-	public StructDefinition getStruct(int structId)
-	{
-		return structs.get(structId);
-	}
-
-	@Override
-	public StructDefinition provide(int structId)
-	{
-		return getStruct(structId);
 	}
 
 	public void dump(File out) throws IOException
 	{
 		out.mkdirs();
 
-		for (StructDefinition def : structs.values())
+		for (Map.Entry<Integer, ParamDefinition> entry : params.entrySet())
 		{
-			StructExporter exporter = new StructExporter(def);
+			int id = entry.getKey();
+			ParamDefinition def = entry.getValue();
 
-			File targ = new File(out, def.getId() + ".json");
+			ParamExporter exporter = new ParamExporter(def);
+
+			File targ = new File(out, id + ".json");
 			exporter.exportTo(targ);
 		}
 	}
+
+	public Map<Integer, ParamDefinition> getParams()
+	{
+		return Collections.unmodifiableMap(params);
+	}
+
+	public ParamDefinition getParam(int paramId)
+	{
+		return params.get(paramId);
+	}
+
+	@Override
+	public ParamDefinition provide(int paramId)
+	{
+		return getParam(paramId);
+	}
+
+
 }

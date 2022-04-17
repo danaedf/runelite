@@ -41,6 +41,7 @@ public class InterfaceExporter
 		this.item = item;
 
 		GsonBuilder builder = new GsonBuilder()
+			.disableHtmlEscaping()
 			.setPrettyPrinting();
 		gson = builder.create();
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018, Seth <Sethtroll3@gmail.com>
+ * Copyright (c) 2018, Joshua Filby <joshua@filby.me>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,34 +22,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.client.plugins.blastfurnaceDDF;
+package net.runelite.cache.definitions.providers;
 
-import net.runelite.client.config.Config;
-import net.runelite.client.config.ConfigGroup;
-import net.runelite.client.config.ConfigItem;
+import net.runelite.cache.definitions.ParamDefinition;
 
-@ConfigGroup("blastfurnaceDDF")
-public interface BlastFurnaceConfigDDF extends Config
+public interface ParamProvider
 {
-	@ConfigItem(
-		keyName = "showConveyorBelt",
-		name = "Show conveyor belt clickbox",
-		description = "Configures whether or not the clickbox for the conveyor belt is displayed",
-		position = 1
-	)
-	default boolean showConveyorBelt()
-	{
-		return false;
-	}
-
-	@ConfigItem(
-		keyName = "showBarDispenser",
-		name = "Show bar dispenser clickbox",
-		description = "Configures whether or not the clickbox for the bar dispenser is displayed",
-		position = 2
-	)
-	default boolean showBarDispenser()
-	{
-		return false;
-	}
+	ParamDefinition provide(int paramId);
 }

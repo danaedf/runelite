@@ -28,6 +28,7 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -38,6 +39,7 @@ import net.runelite.cache.definitions.ObjectDefinition;
 import net.runelite.cache.definitions.OverlayDefinition;
 import net.runelite.cache.definitions.SpriteDefinition;
 import net.runelite.cache.definitions.UnderlayDefinition;
+import net.runelite.cache.definitions.exporters.RegionExporter;
 import net.runelite.cache.definitions.loaders.OverlayLoader;
 import net.runelite.cache.definitions.loaders.SpriteLoader;
 import net.runelite.cache.definitions.loaders.UnderlayLoader;
@@ -55,6 +57,8 @@ import net.runelite.cache.region.RegionLoader;
 import net.runelite.cache.util.Djb2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.imageio.ImageIO;
 
 public class MapImageDumper
 {
@@ -115,6 +119,24 @@ public class MapImageDumper
 		areas.load();
 		sprites.load();
 		loadSprites();
+	}
+
+	public void dump(File out){
+		out.mkdirs();
+
+		for (Region region : regionLoader.getRegions())
+		{
+			for (int z = 0; z < 4; z++) {
+				BufferedImage image = drawRegion(region, z);
+				File targ = new File(out, region.getRegionID() + "_" + z + ".png");
+				try {
+					ImageIO.write(image, "png", targ);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+
+		}
 	}
 
 	public BufferedImage drawMap(int z)
@@ -554,31 +576,27 @@ public class MapImageDumper
 					{
 						if (rotation == 0)
 						{
-							image.setRGB(drawX + 0, drawY + 0, rgb);
-							image.setRGB(drawX + 0, drawY + 1, rgb);
-							image.setRGB(drawX + 0, drawY + 2, rgb);
-							image.setRGB(drawX + 0, drawY + 3, rgb);
+							for (int i = 0; i < MAP_SCALE; i++) {
+								image.setRGB(drawX + 0, drawY + i, rgb);
+							}
 						}
 						else if (rotation == 1)
 						{
-							image.setRGB(drawX + 0, drawY + 0, rgb);
-							image.setRGB(drawX + 1, drawY + 0, rgb);
-							image.setRGB(drawX + 2, drawY + 0, rgb);
-							image.setRGB(drawX + 3, drawY + 0, rgb);
+							for (int i = 0; i < MAP_SCALE; i++) {
+								image.setRGB(drawX + i, drawY + 0, rgb);
+							}
 						}
 						else if (rotation == 2)
 						{
-							image.setRGB(drawX + 3, drawY + 0, rgb);
-							image.setRGB(drawX + 3, drawY + 1, rgb);
-							image.setRGB(drawX + 3, drawY + 2, rgb);
-							image.setRGB(drawX + 3, drawY + 3, rgb);
+							for (int i = 0; i < MAP_SCALE; i++) {
+								image.setRGB(drawX + MAP_SCALE - 1, drawY + i, rgb);
+							}
 						}
 						else if (rotation == 3)
 						{
-							image.setRGB(drawX + 0, drawY + 3, rgb);
-							image.setRGB(drawX + 1, drawY + 3, rgb);
-							image.setRGB(drawX + 2, drawY + 3, rgb);
-							image.setRGB(drawX + 3, drawY + 3, rgb);
+							for (int i = 0; i < MAP_SCALE; i++) {
+								image.setRGB(drawX + i, drawY + MAP_SCALE - 1, rgb);
+							}
 						}
 					}
 
@@ -590,15 +608,15 @@ public class MapImageDumper
 						}
 						else if (rotation == 1)
 						{
-							image.setRGB(drawX + 3, drawY + 0, rgb);
+							image.setRGB(drawX + MAP_SCALE - 1, drawY + 0, rgb);
 						}
 						else if (rotation == 2)
 						{
-							image.setRGB(drawX + 3, drawY + 3, rgb);
+							image.setRGB(drawX + MAP_SCALE - 1, drawY + MAP_SCALE - 1, rgb);
 						}
 						else if (rotation == 3)
 						{
-							image.setRGB(drawX + 0, drawY + 3, rgb);
+							image.setRGB(drawX + 0, drawY + MAP_SCALE - 1, rgb);
 						}
 					}
 
@@ -606,31 +624,27 @@ public class MapImageDumper
 					{
 						if (rotation == 3)
 						{
-							image.setRGB(drawX + 0, drawY + 0, rgb);
-							image.setRGB(drawX + 0, drawY + 1, rgb);
-							image.setRGB(drawX + 0, drawY + 2, rgb);
-							image.setRGB(drawX + 0, drawY + 3, rgb);
+							for (int i = 0; i < MAP_SCALE; i++) {
+								image.setRGB(drawX + 0, drawY + i, rgb);
+							}
 						}
 						else if (rotation == 0)
 						{
-							image.setRGB(drawX + 0, drawY + 0, rgb);
-							image.setRGB(drawX + 1, drawY + 0, rgb);
-							image.setRGB(drawX + 2, drawY + 0, rgb);
-							image.setRGB(drawX + 3, drawY + 0, rgb);
+							for (int i = 0; i < MAP_SCALE; i++) {
+								image.setRGB(drawX + i, drawY + 0, rgb);
+							}
 						}
 						else if (rotation == 1)
 						{
-							image.setRGB(drawX + 3, drawY + 0, rgb);
-							image.setRGB(drawX + 3, drawY + 1, rgb);
-							image.setRGB(drawX + 3, drawY + 2, rgb);
-							image.setRGB(drawX + 3, drawY + 3, rgb);
+							for (int i = 0; i < MAP_SCALE; i++) {
+								image.setRGB(drawX + MAP_SCALE - 1, drawY + i, rgb);
+							}
 						}
 						else if (rotation == 2)
 						{
-							image.setRGB(drawX + 0, drawY + 3, rgb);
-							image.setRGB(drawX + 1, drawY + 3, rgb);
-							image.setRGB(drawX + 2, drawY + 3, rgb);
-							image.setRGB(drawX + 3, drawY + 3, rgb);
+							for (int i = 0; i < MAP_SCALE; i++) {
+								image.setRGB(drawX + i, drawY + MAP_SCALE - 1, rgb);
+							}
 						}
 					}
 				}
@@ -663,17 +677,15 @@ public class MapImageDumper
 
 				if (rotation != 0 && rotation != 2)
 				{
-					image.setRGB(drawX + 0, drawY + 0, rgb);
-					image.setRGB(drawX + 1, drawY + 1, rgb);
-					image.setRGB(drawX + 2, drawY + 2, rgb);
-					image.setRGB(drawX + 3, drawY + 3, rgb);
+					for (int i = 0; i < MAP_SCALE; i++) {
+						image.setRGB(drawX + i, drawY + i, rgb);
+					}
 				}
 				else
 				{
-					image.setRGB(drawX + 0, drawY + 3, rgb);
-					image.setRGB(drawX + 1, drawY + 2, rgb);
-					image.setRGB(drawX + 2, drawY + 1, rgb);
-					image.setRGB(drawX + 3, drawY + 0, rgb);
+					for (int i = 0; i < MAP_SCALE; i++) {
+						image.setRGB(drawX + i, drawY + MAP_SCALE - (i + 1), rgb);
+					}
 				}
 			}
 			else if (type == 22 || (type >= 9 && type <= 11))

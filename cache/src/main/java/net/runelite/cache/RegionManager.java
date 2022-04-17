@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, Adam <Adam@sigterm.info>
+ * Copyright (c) 2018, Joshua Filby <joshua@filby.me>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,40 +22,63 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package net.runelite.cache.definitions.exporters;
+package net.runelite.cache;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import net.runelite.cache.definitions.ParamDefinition;
+import net.runelite.cache.definitions.exporters.ParamExporter;
+import net.runelite.cache.definitions.exporters.RegionExporter;
+import net.runelite.cache.definitions.loaders.ParamLoader;
+import net.runelite.cache.definitions.providers.RegionProvider;
+import net.runelite.cache.fs.*;
+import net.runelite.cache.region.Region;
+import net.runelite.cache.region.RegionLoader;
+
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import net.runelite.cache.definitions.ObjectDefinition;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-public class ObjectExporter
+public class RegionManager implements RegionProvider
 {
-	private final ObjectDefinition object;
-	private final Gson gson;
+	private final Store store;
+	private final RegionLoader regionLoader;
 
-	public ObjectExporter(ObjectDefinition object)
+	public RegionManager(Store store)
 	{
-		this.object = object;
-
-		GsonBuilder builder = new GsonBuilder()
-			.disableHtmlEscaping()
-			.setPrettyPrinting();
-		gson = builder.create();
+		this.store = store;
+		this.regionLoader = new RegionLoader(store);
 	}
 
-	public String export()
+	public void load() throws IOException
 	{
-		return gson.toJson(object);
+		regionLoader.loadRegions();
 	}
 
-	public void exportTo(File file) throws IOException
+	public void dump(File out) throws IOException
 	{
-		try (FileWriter fw = new FileWriter(file))
+		out.mkdirs();
+
+		for (Region region : regionLoader.getRegions())
 		{
-			fw.write(export());
+			RegionExporter exporter = new RegionExporter(region);
+
+			File targ = new File(out, region.getRegionID() + ".json");
+			exporter.exportTo(targ);
 		}
 	}
+
+
+	public Region getRegion(int regionId)
+	{
+		return regionLoader.getRegion(regionId);
+	}
+
+	@Override
+	public Region provide(int regionId)
+	{
+		return getRegion(regionId);
+	}
+
+
 }
